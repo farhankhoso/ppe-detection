@@ -4,9 +4,8 @@ A simple Streamlit web app for detecting Personal Protective Equipment (PPE) in 
 
 ## Demo
 
-```
 ![App Screenshot](assets/demo.png)
-```
+
 
 ## Features
 
