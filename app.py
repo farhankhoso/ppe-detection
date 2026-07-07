@@ -1,6 +1,7 @@
 import tempfile
 
 import cv2
+import numpy as np
 import streamlit as st
 from ultralytics import YOLO
 
@@ -35,17 +36,20 @@ elif file is not None:
     is_video = file.type.startswith("video")
 
     if not is_video:
-        results = model(file.getvalue(), conf=confidence, classes=class_ids)
+        file_bytes = np.frombuffer(file.getvalue(), np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+        results = model(img, conf=confidence, classes=class_ids)
         annotated = results[0].plot()
         st.image(annotated[:, :, ::-1], caption="Detections", use_container_width=True)
 
         ok, encoded = cv2.imencode(".png", annotated)
         if ok:
             st.download_button("Download image", encoded.tobytes(), file_name="detected.png", mime="image/png")
+
     else:
         in_file = tempfile.NamedTemporaryFile(delete=False, suffix="." + file.name.split(".")[-1])
         in_file.write(file.read())
-
         cap = cv2.VideoCapture(in_file.name)
         fps = cap.get(cv2.CAP_PROP_FPS) or 25
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -57,14 +61,16 @@ elif file is not None:
         frame_area = st.empty()
         progress = st.progress(0.0)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
-
         frame_idx = 0
+
         while cap.isOpened():
             ok, frame = cap.read()
             if not ok:
                 break
+
             results = model(frame, conf=confidence, classes=class_ids)
             annotated = results[0].plot()
+
             frame_area.image(annotated[:, :, ::-1], channels="RGB", use_container_width=True)
             writer.write(annotated)
 
